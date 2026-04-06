@@ -3,7 +3,7 @@ const { useQueue } = require('discord-player');
 
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName('resume')
+        .setName('lanjut')
         .setDescription('Lanjutkan lagu yang di-pause'),
     async execute(interaction) {
         const queue = useQueue(interaction.guild.id);
