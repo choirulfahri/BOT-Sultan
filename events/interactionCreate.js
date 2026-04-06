@@ -83,8 +83,10 @@ module.exports = {
                 try {
                     await memberVoiceChannel.permissionOverwrites.edit(interaction.guild.id, { Connect: false });
                     await interaction.reply({ content: '🔒 Room berhasil **dikunci**! Orang lain tidak bisa masuk.', ephemeral: true });
+                    setTimeout(() => interaction.deleteReply().catch(() => {}), 4000);
                 } catch (e) {
                     await interaction.reply({ content: '❌ Gagal mengunci room.', ephemeral: true });
+                    setTimeout(() => interaction.deleteReply().catch(() => {}), 4000);
                 }
             }
 
@@ -93,8 +95,10 @@ module.exports = {
                 try {
                     await memberVoiceChannel.permissionOverwrites.edit(interaction.guild.id, { Connect: null });
                     await interaction.reply({ content: '🔓 Room berhasil **dibuka**! Semua orang bisa masuk sekarang.', ephemeral: true });
+                    setTimeout(() => interaction.deleteReply().catch(() => {}), 4000);
                 } catch (e) {
                     await interaction.reply({ content: '❌ Gagal membuka room.', ephemeral: true });
+                    setTimeout(() => interaction.deleteReply().catch(() => {}), 4000);
                 }
             }
 
@@ -103,8 +107,10 @@ module.exports = {
                 try {
                     await memberVoiceChannel.permissionOverwrites.edit(interaction.guild.id, { ViewChannel: false });
                     await interaction.reply({ content: '👻 Room berhasil **disembunyikan**! Orang lain tidak bisa melihat channel ini.', ephemeral: true });
+                    setTimeout(() => interaction.deleteReply().catch(() => {}), 4000);
                 } catch (e) {
                     await interaction.reply({ content: '❌ Gagal menyembunyikan room.', ephemeral: true });
+                    setTimeout(() => interaction.deleteReply().catch(() => {}), 4000);
                 }
             }
 
@@ -113,9 +119,28 @@ module.exports = {
                 try {
                     await memberVoiceChannel.permissionOverwrites.edit(interaction.guild.id, { ViewChannel: null });
                     await interaction.reply({ content: '👁️ Room kembali **ditampilkan**! Semua orang bisa melihatnya sekarang.', ephemeral: true });
+                    setTimeout(() => interaction.deleteReply().catch(() => {}), 4000);
                 } catch (e) {
                     await interaction.reply({ content: '❌ Gagal menampilkan room.', ephemeral: true });
+                    setTimeout(() => interaction.deleteReply().catch(() => {}), 4000);
                 }
+            }
+
+            // 8. TOMBOL SET PASSWORD
+            else if (interaction.customId === 'tv_setpass') {
+                const modal = new ModalBuilder()
+                    .setCustomId('modal_tv_setpass')
+                    .setTitle('Pasang Kata Sandi');
+
+                const passInput = new TextInputBuilder()
+                    .setCustomId('tv_password_input')
+                    .setLabel('Masukkan kata sandi untuk room ini')
+                    .setStyle(TextInputStyle.Short)
+                    .setMaxLength(20)
+                    .setRequired(true);
+
+                modal.addComponents(new ActionRowBuilder().addComponents(passInput));
+                await interaction.showModal(modal);
             }
 
             // 5. TOMBOL KICK (KICK USER)
@@ -160,8 +185,10 @@ module.exports = {
                 try {
                     await memberVoiceChannel.setName(newName);
                     await interaction.reply({ content: `✅ Nama room berhasil diubah menjadi: **${newName}**`, ephemeral: true });
+                    setTimeout(() => interaction.deleteReply().catch(() => {}), 4000);
                 } catch (err) {
-                    await interaction.reply({ content: '❌ Gagal mengubah nama room. Mungkin bot terkena rate-limit dari Discord (jangan terlalu cepat mengganti nama).', ephemeral: true });
+                    await interaction.reply({ content: '❌ Gagal mengubah nama room. Mungkin bot terkena rate-limit dari Discord.', ephemeral: true });
+                    setTimeout(() => interaction.deleteReply().catch(() => {}), 4000);
                 }
             }
 
@@ -174,8 +201,34 @@ module.exports = {
                     await memberVoiceChannel.setUserLimit(limit);
                     const msg = limit === 0 ? 'dibuat tanpa batas' : `dibatasi maksimal **${limit}** orang`;
                     await interaction.reply({ content: `✅ Kapasitas room berhasil ${msg}.`, ephemeral: true });
+                    setTimeout(() => interaction.deleteReply().catch(() => {}), 4000);
                 } catch (err) {
                     await interaction.reply({ content: '❌ Gagal mengubah batas user.', ephemeral: true });
+                    setTimeout(() => interaction.deleteReply().catch(() => {}), 4000);
+                }
+            }
+
+            // PROSES SET PASSWORD
+            else if (interaction.customId === 'modal_tv_setpass') {
+                const pass = interaction.fields.getTextInputValue('tv_password_input');
+                
+                const voiceEvent = require('./voiceStateUpdate.js');
+                const privateChannels = voiceEvent.getPrivateChannels();
+                const roomData = privateChannels.get(memberVoiceChannel.id);
+
+                if (roomData) {
+                    roomData.password = pass; // Simpan password ke memory object server
+                    
+                    try {
+                        // Kunci room otomatis agar orang harus pake command
+                        await memberVoiceChannel.permissionOverwrites.edit(interaction.guild.id, { Connect: false });
+                        await interaction.reply({ 
+                            content: `✅ Password berhasil dipasang: **${pass}**\n🔒 Room kamu sudah **dikunci** secara otomatis.\n\nSuruh temanmu mengetik command ini di sembarang chat untuk bisa masuk:\n\`/masuk target:@${interaction.user.username} password:${pass}\``, 
+                            ephemeral: true 
+                        });
+                    } catch (err) {
+                        await interaction.reply({ content: '❌ Gagal mengunci channel, pastikan bot punya izin.', ephemeral: true });
+                    }
                 }
             }
         }
@@ -199,8 +252,10 @@ module.exports = {
                     // Keluarkan user dengan memutuskan koneksinya
                     await targetMember.voice.disconnect('Diusir oleh pemilik room Temp Voice');
                     await interaction.reply({ content: `✅ Berhasil menendang **${targetMember.user.tag}** dari room.`, ephemeral: true });
+                    setTimeout(() => interaction.deleteReply().catch(() => {}), 4000);
                 } catch (err) {
                     await interaction.reply({ content: `❌ Gagal mengusir member. Pastikan bot memiliki izin Move Members.`, ephemeral: true });
+                    setTimeout(() => interaction.deleteReply().catch(() => {}), 4000);
                 }
             }
         }

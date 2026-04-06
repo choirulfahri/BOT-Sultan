@@ -40,6 +40,11 @@ module.exports = {
         // Baris Kedua (bisa ditambahkan kick dll nanti)
         const row2 = new ActionRowBuilder().addComponents(
              new ButtonBuilder()
+                .setCustomId('tv_setpass')
+                .setLabel('PASSWORD')
+                .setEmoji('🔑')
+                .setStyle(ButtonStyle.Secondary),
+             new ButtonBuilder()
                 .setCustomId('tv_hide')
                 .setLabel('HIDE')
                 .setEmoji('👻')
