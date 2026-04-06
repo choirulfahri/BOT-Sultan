@@ -43,6 +43,31 @@ module.exports = {
                 privateChannels.set(newChannel.id, { ownerId: newState.member.id, createdAt: Date.now() });
                 console.log(`[TempVoice] Dibuat: ${newChannel.name} oleh ${newState.member.user.tag}`);
 
+                // ==========================================
+                // KIRIM PANEL KONTROL KE TEXT CHAT VOICE CHANNEL
+                // ==========================================
+                try {
+                    const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+                    const embed = new EmbedBuilder()
+                        .setColor(0xED4245)
+                        .setTitle('🔊 TempVoice Interface')
+                        .setDescription(`Selamat datang <@${newState.member.id}>!\n\nGunakan tombol di bawah ini untuk mengatur room kamu.`);
+
+                    const row1 = new ActionRowBuilder().addComponents(
+                        new ButtonBuilder().setCustomId('tv_rename').setLabel('NAMA').setEmoji('📝').setStyle(ButtonStyle.Secondary),
+                        new ButtonBuilder().setCustomId('tv_limit').setLabel('BATAS').setEmoji('👥').setStyle(ButtonStyle.Secondary),
+                        new ButtonBuilder().setCustomId('tv_lock').setLabel('KUNCI').setEmoji('🔒').setStyle(ButtonStyle.Secondary),
+                        new ButtonBuilder().setCustomId('tv_unlock').setLabel('BUKA').setEmoji('🔓').setStyle(ButtonStyle.Secondary)
+                    );
+                    const row2 = new ActionRowBuilder().addComponents(
+                        new ButtonBuilder().setCustomId('tv_kick').setLabel('USIR').setEmoji('🚫').setStyle(ButtonStyle.Danger)
+                    );
+
+                    await newChannel.send({ embeds: [embed], components: [row1, row2] });
+                } catch (sendErr) {
+                    console.error('[TempVoice] Gagal mengirim panel ke chat voice', sendErr.message);
+                }
+
             } catch (err) {
                 console.error('[TempVoice] Gagal membuat channel:', err.message);
             }
