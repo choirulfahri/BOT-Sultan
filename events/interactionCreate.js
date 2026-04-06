@@ -178,6 +178,15 @@ module.exports = {
                     await memberVoiceChannel.setName(`🔊 ${interaction.user.username}'s Room`);
                     await memberVoiceChannel.permissionOverwrites.edit(interaction.user.id, { ManageChannels: true, MoveMembers: true });
                     await interaction.reply({ content: '👑 Kamu telah berhasil **mengambil alih** kepemilikan room ini!', ephemeral: false });
+
+                    // EDIT PANEL SECARA REALTIME
+                    const receivedEmbed = interaction.message.embeds[0];
+                    if (receivedEmbed) {
+                        const { EmbedBuilder } = require('discord.js');
+                        const newEmbed = EmbedBuilder.from(receivedEmbed)
+                            .setDescription(receivedEmbed.description.replace(/👑 \*\*Owner:\*\* <@\d+>/, `👑 **Owner:** <@${interaction.user.id}>`));
+                        await interaction.message.edit({ embeds: [newEmbed] }).catch(() => {});
+                    }
                 } catch (e) {
                     await interaction.reply({ content: '❌ Gagal melakukan claim room.', ephemeral: true });
                     setTimeout(() => interaction.deleteReply().catch(() => {}), 4000);
@@ -194,7 +203,7 @@ module.exports = {
                 }
 
                 const selectMenu = new StringSelectMenuBuilder()
-                    .setCustomId('select_tv_transfer')
+                    .setCustomId(`select_tv_transfer_${interaction.message.id}`)
                     .setPlaceholder('Pilih member pengganti')
                     .addOptions(
                         membersInChannel.slice(0, 25).map(m => ({
@@ -319,7 +328,8 @@ module.exports = {
                 }
             }
             
-            else if (interaction.customId === 'select_tv_transfer') {
+            else if (interaction.customId.startsWith('select_tv_transfer_')) {
+                const panelMsgId = interaction.customId.split('_').pop();
                 const memberVoiceChannel = interaction.member.voice.channel;
                 if (!memberVoiceChannel) {
                     await interaction.reply({ content: '❌ Kamu harus di dalam voice channel.', ephemeral: true });
@@ -345,6 +355,15 @@ module.exports = {
                         await memberVoiceChannel.permissionOverwrites.edit(targetId, { ManageChannels: true, MoveMembers: true });
                         await memberVoiceChannel.permissionOverwrites.delete(interaction.user.id).catch(() => {});
                         await interaction.reply({ content: `✅ Berhasil menyerahkan kepemilikan room kepada **${targetMember.user.tag}**.`, ephemeral: false });
+
+                        // UPDATE PANEL SECARA REALTIME
+                        const panelMsg = await interaction.channel.messages.fetch(panelMsgId).catch(() => null);
+                        if (panelMsg && panelMsg.embeds.length > 0) {
+                            const { EmbedBuilder } = require('discord.js');
+                            const newEmbed = EmbedBuilder.from(panelMsg.embeds[0])
+                                .setDescription(panelMsg.embeds[0].description.replace(/👑 \*\*Owner:\*\* <@\d+>/, `👑 **Owner:** <@${targetId}>`));
+                            await panelMsg.edit({ embeds: [newEmbed] }).catch(() => {});
+                        }
                     }
                 } catch (err) {
                     await interaction.reply({ content: `❌ Gagal memindahkan kepemilikan room.`, ephemeral: true });
