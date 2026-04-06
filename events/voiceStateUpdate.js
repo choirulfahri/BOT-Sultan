@@ -65,8 +65,12 @@ module.exports = {
                         new ButtonBuilder().setCustomId('tv_unhide').setLabel('UNHIDE').setEmoji('👁️').setStyle(ButtonStyle.Secondary),
                         new ButtonBuilder().setCustomId('tv_kick').setLabel('USIR').setEmoji('🚫').setStyle(ButtonStyle.Danger)
                     );
+                    const row3 = new ActionRowBuilder().addComponents(
+                        new ButtonBuilder().setCustomId('tv_claim').setLabel('AMBIL ALIH').setEmoji('👑').setStyle(ButtonStyle.Primary),
+                        new ButtonBuilder().setCustomId('tv_transfer').setLabel('SERAHKAN').setEmoji('🤝').setStyle(ButtonStyle.Primary)
+                    );
 
-                    await newChannel.send({ embeds: [embed], components: [row1, row2] });
+                    await newChannel.send({ embeds: [embed], components: [row1, row2, row3] });
                 } catch (sendErr) {
                     console.error('[TempVoice] Gagal mengirim panel ke chat voice', sendErr.message);
                 }

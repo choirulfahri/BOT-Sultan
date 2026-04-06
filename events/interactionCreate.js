@@ -38,15 +38,26 @@ module.exports = {
                 return;
             }
 
-            // Pengecekan kepemilikan room
-            const roomData = privateChannels.get(memberVoiceChannel.id);
-            if (!roomData || roomData.ownerId !== interaction.user.id) {
+            // ==========================================
+            // AUTO RESTORE MEMORY (Jika Bot Habis Restart)
+            // ==========================================
+            let roomData = privateChannels.get(memberVoiceChannel.id);
+            if (!roomData && (memberVoiceChannel.name.includes("'s Room") || memberVoiceChannel.name.includes("🔊"))) {
+                // Temukan user yang punya izin ManageChannels di room ini
+                const ownerPerm = memberVoiceChannel.permissionOverwrites.cache.find(perm => perm.allow.has('MoveMembers') && perm.type === 1);
+                const ownerId = ownerPerm ? ownerPerm.id : (memberVoiceChannel.members.first() ? memberVoiceChannel.members.first().id : interaction.user.id);
+                roomData = { ownerId: ownerId, createdAt: Date.now() };
+                privateChannels.set(memberVoiceChannel.id, roomData);
+            }
+
+            // Pengecekan kepemilikan room (Kecuali tombol AMBIL ALIH)
+            if (interaction.customId !== 'tv_claim' && (!roomData || roomData.ownerId !== interaction.user.id)) {
                 await interaction.reply({ content: '❌ Kamu bukan pemilik riuangan ini!', ephemeral: true });
                 setTimeout(() => interaction.deleteReply().catch(() => {}), 4000);
                 return;
             }
 
-            const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
+            const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, StringSelectMenuBuilder } = require('discord.js');
 
             // 1. TOMBOL GANTI NAMA
             if (interaction.customId === 'tv_rename') {
@@ -147,19 +158,64 @@ module.exports = {
                 await interaction.showModal(modal);
             }
 
-            // 5. TOMBOL KICK (KICK USER)
-            else if (interaction.customId === 'tv_kick') {
-                const { StringSelectMenuBuilder } = require('discord.js');
-                
-                // Ambil daftar member yang ada di voice channel ini sekarang
-                // Filter agar pemilik ruangan tidak bisa mengusir dirinya sendiri
+            // 9. TOMBOL AMBIL ALIH (CLAIM ROOM)
+            else if (interaction.customId === 'tv_claim') {
+                if (roomData.ownerId === interaction.user.id) {
+                    await interaction.reply({ content: '❌ Kamu sudah menjadi pemilik room ini!', ephemeral: true });
+                    return setTimeout(() => interaction.deleteReply().catch(() => {}), 4000);
+                }
+
+                // Cek apakah pemilik aslinya masih ada di voice channel ini
+                const ownerP = memberVoiceChannel.members.get(roomData.ownerId);
+                if (ownerP) {
+                    await interaction.reply({ content: `❌ Pemilik ruangan (<@${roomData.ownerId}>) masih ada di dalam! Kamu tidak bisa mengambil alih.`, ephemeral: true });
+                    return setTimeout(() => interaction.deleteReply().catch(() => {}), 4000);
+                }
+
+                try {
+                    // Berhasil claim
+                    roomData.ownerId = interaction.user.id;
+                    await memberVoiceChannel.setName(`🔊 ${interaction.user.username}'s Room`);
+                    await memberVoiceChannel.permissionOverwrites.edit(interaction.user.id, { ManageChannels: true, MoveMembers: true });
+                    await interaction.reply({ content: '👑 Kamu telah berhasil **mengambil alih** kepemilikan room ini!', ephemeral: false });
+                } catch (e) {
+                    await interaction.reply({ content: '❌ Gagal melakukan claim room.', ephemeral: true });
+                    setTimeout(() => interaction.deleteReply().catch(() => {}), 4000);
+                }
+            }
+
+            // 10. TOMBOL SERAHKAN (TRANSFER ROOM)
+            else if (interaction.customId === 'tv_transfer') {
                 const membersInChannel = Array.from(memberVoiceChannel.members.values()).filter(m => m.id !== interaction.user.id);
                 
                 if (membersInChannel.length === 0) {
-                    return interaction.reply({ content: '❌ Tidak ada orang lain di ruangan ini untuk diusir.', ephemeral: true });
+                    await interaction.reply({ content: '❌ Tidak ada orang lain di ruangan ini untuk diserahkan kepemilikannya.', ephemeral: true });
+                    return setTimeout(() => interaction.deleteReply().catch(() => {}), 4000);
                 }
 
-                // Buat Dropdown menu
+                const selectMenu = new StringSelectMenuBuilder()
+                    .setCustomId('select_tv_transfer')
+                    .setPlaceholder('Pilih member pengganti')
+                    .addOptions(
+                        membersInChannel.slice(0, 25).map(m => ({
+                            label: m.user.username,
+                            description: `Serahkan room ke ${m.user.tag}`,
+                            value: m.id
+                        }))
+                    );
+
+                const row = new ActionRowBuilder().addComponents(selectMenu);
+                await interaction.reply({ content: 'Pilih member yang ingin Anda jadikan pemilik baru room ini:', components: [row], ephemeral: true });
+            }
+            // 5. TOMBOL KICK (KICK USER)
+            else if (interaction.customId === 'tv_kick') {
+                const membersInChannel = Array.from(memberVoiceChannel.members.values()).filter(m => m.id !== interaction.user.id);
+                
+                if (membersInChannel.length === 0) {
+                    await interaction.reply({ content: '❌ Tidak ada orang lain di ruangan ini untuk diusir.', ephemeral: true });
+                    return setTimeout(() => interaction.deleteReply().catch(() => {}), 4000);
+                }
+
                 const selectMenu = new StringSelectMenuBuilder()
                     .setCustomId('select_tv_kick')
                     .setPlaceholder('Pilih member yang ingin diusir')
@@ -259,6 +315,39 @@ module.exports = {
                     setTimeout(() => interaction.deleteReply().catch(() => {}), 4000);
                 } catch (err) {
                     await interaction.reply({ content: `❌ Gagal mengusir member. Pastikan bot memiliki izin Move Members.`, ephemeral: true });
+                    setTimeout(() => interaction.deleteReply().catch(() => {}), 4000);
+                }
+            }
+            
+            else if (interaction.customId === 'select_tv_transfer') {
+                const memberVoiceChannel = interaction.member.voice.channel;
+                if (!memberVoiceChannel) {
+                    await interaction.reply({ content: '❌ Kamu harus di dalam voice channel.', ephemeral: true });
+                    return setTimeout(() => interaction.deleteReply().catch(() => {}), 4000);
+                }
+                
+                const targetId = interaction.values[0];
+                const targetMember = memberVoiceChannel.members.get(targetId);
+
+                if (!targetMember) {
+                    await interaction.reply({ content: '❌ Member tersebut mungkin sudah keluar dari room ini.', ephemeral: true });
+                    return setTimeout(() => interaction.deleteReply().catch(() => {}), 4000);
+                }
+
+                try {
+                    const voiceEvent = require('./voiceStateUpdate.js');
+                    const privateChannels = voiceEvent.getPrivateChannels();
+                    const roomData = privateChannels.get(memberVoiceChannel.id);
+                    
+                    if (roomData) {
+                        roomData.ownerId = targetId; // Ubah owner
+                        await memberVoiceChannel.setName(`🔊 ${targetMember.user.username}'s Room`);
+                        await memberVoiceChannel.permissionOverwrites.edit(targetId, { ManageChannels: true, MoveMembers: true });
+                        await memberVoiceChannel.permissionOverwrites.delete(interaction.user.id).catch(() => {});
+                        await interaction.reply({ content: `✅ Berhasil menyerahkan kepemilikan room kepada **${targetMember.user.tag}**.`, ephemeral: false });
+                    }
+                } catch (err) {
+                    await interaction.reply({ content: `❌ Gagal memindahkan kepemilikan room.`, ephemeral: true });
                     setTimeout(() => interaction.deleteReply().catch(() => {}), 4000);
                 }
             }

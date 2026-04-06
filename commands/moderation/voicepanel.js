@@ -61,9 +61,23 @@ module.exports = {
                 .setStyle(ButtonStyle.Danger) // Red color untuk usir
         );
 
+        // Baris Ketiga (Kepemilikan)
+        const row3 = new ActionRowBuilder().addComponents(
+             new ButtonBuilder()
+                .setCustomId('tv_claim')
+                .setLabel('AMBIL ALIH')
+                .setEmoji('👑')
+                .setStyle(ButtonStyle.Primary),
+             new ButtonBuilder()
+                .setCustomId('tv_transfer')
+                .setLabel('SERAHKAN')
+                .setEmoji('🤝')
+                .setStyle(ButtonStyle.Primary)
+        );
+
         await interaction.reply({
             embeds: [embed],
-            components: [row1, row2]
+            components: [row1, row2, row3]
         });
     },
 };
