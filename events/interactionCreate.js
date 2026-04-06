@@ -24,19 +24,79 @@ module.exports = {
         // PENANGANAN TOMBOL (BUTTON) DARI PANEL TEMP VOICE
         // ===============================================
         else if (interaction.isButton()) {
-            // Ambil daftar private channel dari memory bot
-            const voiceEvent = require('./voiceStateUpdate.js');
-            const privateChannels = voiceEvent.getPrivateChannels();
+            // ===============================================
+            // 1. PENANGANAN PERMINTAAN ROLE VERIFIKASI CEWE (DARI DM)
+            // ===============================================
+            if (interaction.customId.startsWith('reqgirl_accept_') || interaction.customId.startsWith('reqgirl_reject_')) {
+                // Di dalam DM, interaction.guild = null. Kita harus fetch server asli dan pelamarnya.
+                const parts = interaction.customId.split('_');
+                const action = parts[1]; // accept atau reject
+                const guildId = parts[2];
+                const applicantId = parts[3];
 
-            // Pengecekan dasar: user harus ada di voice channel
-            const memberVoiceChannel = interaction.member.voice.channel;
-            if (!interaction.customId.startsWith('tv_')) return; // Bukan tombol temp voice
+                const guild = interaction.client.guilds.cache.get(guildId);
+                if (!guild) {
+                    return interaction.reply({ content: '❌ Terjadi kesalahan: Data server sudah tidak ditemukan (mungkin bot kick dari server).', ephemeral: true });
+                }
+
+                // Defer DM karena fetch lama
+                await interaction.deferUpdate();
+
+                // Dapatkan pelamar dari server
+                let applicant;
+                try {
+                    applicant = await guild.members.fetch(applicantId);
+                } catch (e) {
+                    return interaction.editReply({ content: '❌ Terjadi kesalahan: Pelamar tersebut sepertinya sudah keluar dari server.', components: [] });
+                }
+
+                if (action === 'accept') {
+                    // Cari Role (sama seperti algoritma semula)
+                    let girlRoleId = process.env.ROLE_GIRL_ID;
+                    let girlRole;
+                    if (girlRoleId) girlRole = guild.roles.cache.get(girlRoleId);
+                    
+                    if (!girlRole) {
+                        girlRole = guild.roles.cache.find(r => 
+                            r.name.toLowerCase().includes('cewe') || r.name.toLowerCase().includes('girl') || r.name.toLowerCase().includes('wanita') || r.name.toLowerCase().includes('perempuan')
+                        );
+                    }
+
+                    if (!girlRole) {
+                        return interaction.editReply({ content: '❌ **Role tidak ditemukan!** Pastikan server memiliki role dengan nama "Cewe / Girl / Wanita". Tolong beritahu pelamar secara manual.', components: [] });
+                    }
+
+                    try {
+                        await applicant.roles.add(girlRole);
+                        await interaction.editReply({ content: `✅ Permintaan disetujui! Status perempuan dari **${applicant.user.tag}** telah berhasil diverifikasi.`, components: [] });
+                        // DM pelamar!
+                        await applicant.send({ content: `🎀 **Selamat!** Permintaan verifikasi perempuan kamu di server **${guild.name}** telah disetujui oleh <@${interaction.user.id}>.\nKamu sudah resmi mendapatkan role terkait.` }).catch(() => {});
+                    } catch (e) {
+                        return interaction.editReply({ content: '❌ Gagal memberikan role. Pastikan peran bot Sultan berada lebih atas dari peran Cewe tersebut!', components: [] });
+                    }
+                } else if (action === 'reject') {
+                    await interaction.editReply({ content: `❌ Anda telah **menolak** permintaan verifikasi dari **${applicant.user.tag}**.`, components: [] });
+                    await applicant.send({ content: `💔 Maaf, tapi permintaan verifikasi perempuan kamu di server **${guild.name}** telah **Ditolak** oleh salah seorang admin.` }).catch(() => {});
+                }
+                return; // Selesai
+            }
+
+            // ===============================================
+            // 2. PENANGANAN TOMBOL TEMP VOICE
+            // ===============================================
+            if (!interaction.customId.startsWith('tv_')) return; // Blokir jika bukan temp voice
+            
+            const memberVoiceChannel = interaction.member?.voice?.channel;
 
             if (!memberVoiceChannel) {
                 await interaction.reply({ content: '❌ Kamu harus berada di dalam Temp Voice kamu sendiri untuk menggunakan kontrol ini!', ephemeral: true });
                 setTimeout(() => interaction.deleteReply().catch(() => {}), 4000);
                 return;
             }
+
+            // Ambil daftar private channel dari memory bot
+            const voiceEvent = require('./voiceStateUpdate.js');
+            const privateChannels = voiceEvent.getPrivateChannels();
 
             // ==========================================
             // AUTO RESTORE MEMORY (Jika Bot Habis Restart)
