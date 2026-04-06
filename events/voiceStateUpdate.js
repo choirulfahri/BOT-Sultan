@@ -60,6 +60,8 @@ module.exports = {
                         new ButtonBuilder().setCustomId('tv_unlock').setLabel('BUKA').setEmoji('🔓').setStyle(ButtonStyle.Secondary)
                     );
                     const row2 = new ActionRowBuilder().addComponents(
+                        new ButtonBuilder().setCustomId('tv_hide').setLabel('HIDE').setEmoji('👻').setStyle(ButtonStyle.Secondary),
+                        new ButtonBuilder().setCustomId('tv_unhide').setLabel('UNHIDE').setEmoji('👁️').setStyle(ButtonStyle.Secondary),
                         new ButtonBuilder().setCustomId('tv_kick').setLabel('USIR').setEmoji('🚫').setStyle(ButtonStyle.Danger)
                     );
 

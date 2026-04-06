@@ -98,6 +98,26 @@ module.exports = {
                 }
             }
 
+            // 6. TOMBOL HIDE (SEMBUNYIKAN ROOM)
+            else if (interaction.customId === 'tv_hide') {
+                try {
+                    await memberVoiceChannel.permissionOverwrites.edit(interaction.guild.id, { ViewChannel: false });
+                    await interaction.reply({ content: '👻 Room berhasil **disembunyikan**! Orang lain tidak bisa melihat channel ini.', ephemeral: true });
+                } catch (e) {
+                    await interaction.reply({ content: '❌ Gagal menyembunyikan room.', ephemeral: true });
+                }
+            }
+
+            // 7. TOMBOL UNHIDE (TAMPILKAN ROOM)
+            else if (interaction.customId === 'tv_unhide') {
+                try {
+                    await memberVoiceChannel.permissionOverwrites.edit(interaction.guild.id, { ViewChannel: null });
+                    await interaction.reply({ content: '👁️ Room kembali **ditampilkan**! Semua orang bisa melihatnya sekarang.', ephemeral: true });
+                } catch (e) {
+                    await interaction.reply({ content: '❌ Gagal menampilkan room.', ephemeral: true });
+                }
+            }
+
             // 5. TOMBOL KICK (KICK USER)
             else if (interaction.customId === 'tv_kick') {
                 const { StringSelectMenuBuilder } = require('discord.js');
