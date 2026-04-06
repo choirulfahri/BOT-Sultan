@@ -83,15 +83,24 @@ module.exports = {
 
         const channel = oldState.channel;
 
-        // Cek apakah ini channel buatan bot
-        if (!privateChannels.has(channel.id)) return;
+        // Cek apakah ini channel buatan bot (Lewat memory atau dari ciri khas namanya)
+        const isSavedInMemory = privateChannels.has(channel.id);
+        const isTempRoomByName = channel.name.includes("'s Room") || channel.name.includes("🔊");
+
+        if (!isSavedInMemory && !isTempRoomByName) return;
 
         // Jika channel sudah kosong (semua orang leave)
         if (channel.members.size === 0) {
             try {
-                await channel.delete('Temp Voice Kosong');
-                privateChannels.delete(channel.id);
-                console.log(`[TempVoice] Dihapus: ${channel.name} karena sudah kosong.`);
+                // Beri delay 1 detik untuk memastikan API Discord sinkron sebelum dihapus
+                setTimeout(async () => {
+                    const checkChannel = await oldState.guild.channels.fetch(channel.id).catch(() => null);
+                    if (checkChannel && checkChannel.members.size === 0) {
+                        await checkChannel.delete('Temp Voice Kosong');
+                        if (isSavedInMemory) privateChannels.delete(channel.id);
+                        console.log(`[TempVoice] Dihapus: ${channel.name} karena sudah kosong.`);
+                    }
+                }, 1500);
             } catch (err) {
                 console.error('[TempVoice] Gagal menghapus channel kosong:', err.message);
             }
