@@ -51,7 +51,7 @@ module.exports = {
                     const embed = new EmbedBuilder()
                         .setColor(0xED4245)
                         .setTitle('🔊 TempVoice Interface')
-                        .setDescription(`Selamat datang <@${newState.member.id}>!\n\nGunakan tombol di bawah ini untuk mengatur room kamu.`);
+                        .setDescription(`Selamat datang <@${newState.member.id}>!\n\n👑 **Owner:** <@${newState.member.id}>\n\nGunakan tombol di bawah ini untuk mengatur room kamu.`);
 
                     const row1 = new ActionRowBuilder().addComponents(
                         new ButtonBuilder().setCustomId('tv_rename').setLabel('NAMA').setEmoji('📝').setStyle(ButtonStyle.Secondary),

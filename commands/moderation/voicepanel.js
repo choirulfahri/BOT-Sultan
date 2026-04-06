@@ -6,10 +6,20 @@ module.exports = {
         .setDescription('Munculkan panel kontrol untuk Temp Voice')
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator), // Hanya Admin yang bisa spawn
     async execute(interaction) {
+        // Cek data kepemilikan untuk menampilkan Owner
+        const voiceEvent = require('../../events/voiceStateUpdate.js');
+        const privateChannels = voiceEvent.getPrivateChannels();
+        let ownerId = interaction.user.id; // Fallback
+        const memberVoiceChannel = interaction.member.voice.channel;
+        if (memberVoiceChannel && privateChannels.has(memberVoiceChannel.id)) {
+            const roomData = privateChannels.get(memberVoiceChannel.id);
+            ownerId = roomData.ownerId;
+        }
+
         const embed = new EmbedBuilder()
             .setColor(0xED4245)
             .setTitle('🔊 TempVoice Interface')
-            .setDescription('**Antarmuka Pengendali**\n\nAntarmuka ini digunakan untuk mengatur Voice channel sementara kamu. Klik tombol di bawah ini saat kamu sedang berada di dalam room temp voice milikmu.')
+            .setDescription(`👑 **Owner:** <@${ownerId}>\n\nGunakan tombol di bawah ini untuk mengatur room kamu.`)
             .setFooter({ text: 'TempVoice System' })
             .setTimestamp();
 
