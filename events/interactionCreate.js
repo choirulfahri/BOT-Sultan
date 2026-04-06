@@ -100,19 +100,30 @@ module.exports = {
 
             // 5. TOMBOL KICK (KICK USER)
             else if (interaction.customId === 'tv_kick') {
-                const modal = new ModalBuilder()
-                    .setCustomId('modal_tv_kick')
-                    .setTitle('Usir Member dari Room');
+                const { StringSelectMenuBuilder } = require('discord.js');
+                
+                // Ambil daftar member yang ada di voice channel ini sekarang
+                // Filter agar pemilik ruangan tidak bisa mengusir dirinya sendiri
+                const membersInChannel = Array.from(memberVoiceChannel.members.values()).filter(m => m.id !== interaction.user.id);
+                
+                if (membersInChannel.length === 0) {
+                    return interaction.reply({ content: '❌ Tidak ada orang lain di ruangan ini untuk diusir.', ephemeral: true });
+                }
 
-                const idInput = new TextInputBuilder()
-                    .setCustomId('tv_kick_id')
-                    .setLabel('Ketik ID Discord member atau tag/namanya')
-                    .setPlaceholder('Contoh: 123456789 atau @udin')
-                    .setStyle(TextInputStyle.Short)
-                    .setRequired(true);
+                // Buat Dropdown menu
+                const selectMenu = new StringSelectMenuBuilder()
+                    .setCustomId('select_tv_kick')
+                    .setPlaceholder('Pilih member yang ingin diusir')
+                    .addOptions(
+                        membersInChannel.slice(0, 25).map(m => ({
+                            label: m.user.username,
+                            description: `Usir ${m.user.tag} dari room`,
+                            value: m.id
+                        }))
+                    );
 
-                modal.addComponents(new ActionRowBuilder().addComponents(idInput));
-                await interaction.showModal(modal);
+                const row = new ActionRowBuilder().addComponents(selectMenu);
+                await interaction.reply({ content: 'Pilih member yang ingin Anda usir dari daftar ini:', components: [row], ephemeral: true });
             }
         }
 
@@ -147,25 +158,29 @@ module.exports = {
                     await interaction.reply({ content: '❌ Gagal mengubah batas user.', ephemeral: true });
                 }
             }
+        }
 
-            // PROSES KICK (SIMPLIFIED: Mengeluarkan user berdasarkan ID)
-            else if (interaction.customId === 'modal_tv_kick') {
-                const inputQuery = interaction.fields.getTextInputValue('tv_kick_id').replace(/[<@!>]/g, ''); // bersihkan ping/tag jika ada
-                const targetMember = memberVoiceChannel.members.get(inputQuery);
+        // ===============================================
+        // PENANGANAN MENU PILIHAN (DROPDOWN/SELECT MENU)
+        // ===============================================
+        else if (interaction.isStringSelectMenu()) {
+            if (interaction.customId === 'select_tv_kick') {
+                const memberVoiceChannel = interaction.member.voice.channel;
+                if (!memberVoiceChannel) return interaction.reply({ content: '❌ Kamu harus di dalam voice channel.', ephemeral: true });
+                
+                const targetId = interaction.values[0];
+                const targetMember = memberVoiceChannel.members.get(targetId);
 
                 if (!targetMember) {
-                    return interaction.reply({ content: '❌ Member dengan ID/Tag tersebut tidak ada di dalam room kamu saat ini.', ephemeral: true });
-                }
-                if (targetMember.id === interaction.user.id) {
-                    return interaction.reply({ content: '❌ Kamu tidak bisa mengusir diri sendiri!', ephemeral: true });
+                    return interaction.reply({ content: '❌ Member tersebut mungkin sudah keluar dari room ini.', ephemeral: true });
                 }
 
                 try {
-                    // Cara mengusir dari voice: set voice channel ke null
+                    // Keluarkan user dengan memutuskan koneksinya
                     await targetMember.voice.disconnect('Diusir oleh pemilik room Temp Voice');
                     await interaction.reply({ content: `✅ Berhasil menendang **${targetMember.user.tag}** dari room.`, ephemeral: true });
                 } catch (err) {
-                    await interaction.reply({ content: `❌ Gagal mengusir member. (Mungkin bot tidak punya izin Move Members)`, ephemeral: true });
+                    await interaction.reply({ content: `❌ Gagal mengusir member. Pastikan bot memiliki izin Move Members.`, ephemeral: true });
                 }
             }
         }
