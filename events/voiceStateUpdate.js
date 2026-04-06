@@ -92,7 +92,7 @@ module.exports = {
         // Jika channel sudah kosong (semua orang leave)
         if (channel.members.size === 0) {
             try {
-                // Beri delay 1 detik untuk memastikan API Discord sinkron sebelum dihapus
+                // Beri delay 1.5 detik untuk memastikan API Discord sinkron sebelum dihapus
                 setTimeout(async () => {
                     const checkChannel = await oldState.guild.channels.fetch(channel.id).catch(() => null);
                     if (checkChannel && checkChannel.members.size === 0) {
@@ -103,6 +103,30 @@ module.exports = {
                 }, 1500);
             } catch (err) {
                 console.error('[TempVoice] Gagal menghapus channel kosong:', err.message);
+            }
+        } 
+        // Jika belum kosong, cek apakah yang keluar adalah Owner (Pemilik)
+        else if (isSavedInMemory) {
+            const roomData = privateChannels.get(channel.id);
+            if (roomData.ownerId === oldState.member.id) {
+                // Pilih member secara acak dari yang masih tersisa di dalam room
+                const newOwner = channel.members.first(); 
+                if (newOwner) {
+                    roomData.ownerId = newOwner.id; // Update ke data baru
+                    try {
+                        // Ubah nama room
+                        await channel.setName(`🔊 ${newOwner.user.username}'s Room`);
+                        // Berikan perizinan ke orang baru tersebut
+                        await channel.permissionOverwrites.edit(newOwner.id, { ManageChannels: true, MoveMembers: true });
+                        // Hilangkan perizinan orang lama yg baru keluar (opsional/bersih-bersih)
+                        await channel.permissionOverwrites.delete(oldState.member.id).catch(() => {});
+                        // Beri notifikasi ke text chat voice
+                        await channel.send({ content: `👑 Karena pemilik keluar, ruang ini otomatis dialihkan kepemilikannya ke **<@${newOwner.id}>**!` });
+                        console.log(`[TempVoice] Update owner ke ${newOwner.user.username}`);
+                    } catch (e) {
+                        console.error('[TempVoice] Gagal transfer owner otomatis:', e.message);
+                    }
+                }
             }
         }
     },

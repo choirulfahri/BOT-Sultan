@@ -33,13 +33,17 @@ module.exports = {
             if (!interaction.customId.startsWith('tv_')) return; // Bukan tombol temp voice
 
             if (!memberVoiceChannel) {
-                return interaction.reply({ content: '❌ Kamu harus berada di dalam Temp Voice kamu sendiri untuk menggunakan kontrol ini!', ephemeral: true });
+                await interaction.reply({ content: '❌ Kamu harus berada di dalam Temp Voice kamu sendiri untuk menggunakan kontrol ini!', ephemeral: true });
+                setTimeout(() => interaction.deleteReply().catch(() => {}), 4000);
+                return;
             }
 
             // Pengecekan kepemilikan room
             const roomData = privateChannels.get(memberVoiceChannel.id);
             if (!roomData || roomData.ownerId !== interaction.user.id) {
-                return interaction.reply({ content: '❌ Kamu bukan pemilik riuangan ini!', ephemeral: true });
+                await interaction.reply({ content: '❌ Kamu bukan pemilik riuangan ini!', ephemeral: true });
+                setTimeout(() => interaction.deleteReply().catch(() => {}), 4000);
+                return;
             }
 
             const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
