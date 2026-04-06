@@ -14,9 +14,10 @@ module.exports = {
         // ==========================================
         // Set VOICE_CREATE_ID di dalam file .env
         const triggerChannelId = process.env.VOICE_CREATE_ID;
+        const joinedChannel = newState.channel;
 
-        // Jika user baru bergabung ke voice channel trigger
-        if (newState.channelId && newState.channelId === triggerChannelId) {
+        // Jika user bergabung ke voice channel yang ID-nya cocok ATAU namanya mengandung emoji ➕
+        if (joinedChannel && (joinedChannel.id === triggerChannelId || joinedChannel.name.includes('➕'))) {
             try {
                 // Buat Voice Channel Baru di bawah Kategori yang sama
                 const newChannel = await newState.guild.channels.create({
