@@ -2,7 +2,7 @@ const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, Butt
 
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName('reqgirl')
+        .setName('rolegirl')
         .setDescription('Kirim permintaan (Request) untuk mendapatkan status verifikasi Perempuan ke Admin'),
 
     async execute(interaction) {

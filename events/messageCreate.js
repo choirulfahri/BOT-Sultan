@@ -370,8 +370,82 @@ module.exports = {
                 }
             }
 
+            // === REQUEST ROLE GIRL / CEWE ===
+            if (/(role cewe|role girl|verifikasi cewe|vewek|perempuan|wanita)/i.test(contentLower) && !/(putar|lagu|play)/i.test(contentLower)) {
+                // 1. Validasi apakah user sudah punya role atau belum
+                let girlRoleId = process.env.ROLE_GIRL_ID;
+                let girlRole;
+
+                if (girlRoleId) {
+                    girlRole = message.guild.roles.cache.get(girlRoleId);
+                }
+                if (!girlRole) {
+                    girlRole = message.guild.roles.cache.find(r => 
+                        r.name.toLowerCase().includes('cewe') || 
+                        r.name.toLowerCase().includes('girl') || 
+                        r.name.toLowerCase().includes('wanita') ||
+                        r.name.toLowerCase().includes('perempuan')
+                    );
+                }
+
+                if (girlRole && message.member.roles.cache.has(girlRole.id)) {
+                    return autoReply('✅ Kamu sudah memiliki role perempuan! (Posisimu sudah diverifikasi sebelumnya).');
+                }
+
+                // 2. Kumpulkan Admin Spesifik
+                const adminIds = ['1247115440283582513', '479890396952920076']; 
+                await message.guild.members.fetch(); 
+                const admins = [];
+                for (const id of adminIds) {
+                    const member = message.guild.members.cache.get(id);
+                    if (member) admins.push(member);
+                }
+                
+                if (admins.length === 0) {
+                    return autoReply('❌ Sayangnya, admin yang bertugas tidak ditemukan di server ini.');
+                }
+
+                // 3. Buat Surat Izin (DM Envelope)
+                const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+                const embed = new EmbedBuilder()
+                    .setColor(0xFF69B4)
+                    .setTitle('🚨 Request Verifikasi Perempuan')
+                    .setDescription(`Seorang member telah mengajukan permintaan role **Perempuan / Girl** via chat.\n\n**Data Pelamar:**\n👤 **User:** <@${message.author.id}>\n🏷️ **Username:** ${message.author.tag}\n🏠 **Server:** ${message.guild.name}\n\nSilakan tekan tombol di bawah ini (Kamu bisa chat/voice dengan dia dulu kalau ragu).`)
+                    .setThumbnail(message.author.displayAvatarURL({ dynamic: true, size: 256 }))
+                    .setFooter({ text: 'Sistem Verifikasi Khusus Cewe Otomatis' })
+                    .setTimestamp();
+
+                const row = new ActionRowBuilder().addComponents(
+                    new ButtonBuilder()
+                        .setCustomId(`reqgirl_accept_${message.guild.id}_${message.author.id}`)
+                        .setLabel('SETUJUI')
+                        .setEmoji('✅')
+                        .setStyle(ButtonStyle.Success),
+                    new ButtonBuilder()
+                        .setCustomId(`reqgirl_reject_${message.guild.id}_${message.author.id}`)
+                        .setLabel('TOLAK')
+                        .setEmoji('❌')
+                        .setStyle(ButtonStyle.Danger)
+                );
+
+                // 4. Kirim ke DM Admin
+                let sentCount = 0;
+                for (const admin of admins) {
+                    try {
+                        await admin.send({ embeds: [embed], components: [row] });
+                        sentCount++;
+                    } catch (err) {}
+                }
+
+                if (sentCount === 0) {
+                    return autoReply('❌ Terjadi kegagalan. Para admin menonaktifkan DM Server mereka.');
+                } else {
+                    return autoReply(`✅ Permintaan verifikasi berhasil dikirimkan ke kotak pesan **${sentCount}** Admin!\nSilakan tunggu pesan balasan langsung ke DM kamu!`);
+                }
+            }
+
             // Jika tidak ada keyword yang cocok
-            return autoReply('hm? mau suruh gue ngapain? bilang yang jelas dong, contoh: `@bot putar Hindia` atau `@bot sini`');
+            return autoReply('hm? mau suruh gue ngapain? bilang yang jelas dong, contoh: `@bot putar Hindia` atau `@bot role cewe`');
         }
 
         const isPhishing = phishingPatterns.some(pattern => pattern.test(message.content));
