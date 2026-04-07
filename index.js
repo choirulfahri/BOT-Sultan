@@ -1,5 +1,5 @@
 require('dotenv').config();
-// process.env.DP_FORCE_YTDL_MOD="play-dl"; // Dinonaktifkan karena play-dl sedang diblokir Youtube
+process.env.DP_FORCE_YTDL_MOD="youtube-ext"; // Mengakali blokir IP VPS oleh Youtube
 const fs = require('node:fs');
 const path = require('node:path');
 const { Client, Collection, GatewayIntentBits, Partials } = require('discord.js');
