@@ -37,7 +37,7 @@ module.exports = {
 
             const { QueryType } = require('discord-player');
             const res = await player.play(userChannel, query, {
-                searchEngine: QueryType.SPOTIFY_SEARCH,
+                searchEngine: QueryType.AUTO,
                 nodeOptions: {
                     metadata: interaction,
                     leaveOnEmpty: false,
@@ -70,8 +70,21 @@ module.exports = {
                 await interaction.editReply({ content: `numpang ngamen bawain lagu **${res.track.title}** 🎵` });
             }
         } catch (e) {
-            console.log(e);
-            await interaction.editReply({ content: `ada yang salah tapi apa ye: ${e.message}` });
+            if (e.message.includes('extract stream') || e.message.includes('extractor') || e.message.includes('No results')) {
+                try {
+                    const scQuery = query.replace('scsearch:', '').trim();
+                    const scRes = await interaction.client.player.play(userChannel, scQuery, {
+                        searchEngine: require('discord-player').QueryType.SOUNDCLOUD_SEARCH,
+                        nodeOptions: { metadata: interaction, leaveOnEmpty: false, leaveOnEnd: false }
+                    });
+                    await interaction.editReply({ content: `🎶 Pindah jalur mencari... Ketemu lagu: **${scRes.track.title}**` });
+                } catch (fallbackError) {
+                    await interaction.editReply({ content: `❌ Lagu ini benar-benar tidak ditemukan (diblokir seluruhnya).` });
+                }
+            } else {
+                console.log(e);
+                await interaction.editReply({ content: `ada yang salah tapi apa ye: ${e.message}` });
+            }
         }
     },
 };

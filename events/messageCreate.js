@@ -145,12 +145,25 @@ module.exports = {
                 try {
                     const { QueryType } = require('discord-player');
                     const res = await client.player.play(vc, query, {
-                        searchEngine: QueryType.SPOTIFY_SEARCH,
+                        searchEngine: QueryType.AUTO,
                         nodeOptions: { leaveOnEmpty: false, leaveOnEnd: false, leaveOnStop: false, metadata: message }
                     });
                     return message.reply(`numpang ngamen bawain lagu **${res.track.title}** 🎵`);
                 } catch (e) {
-                    return message.reply(`gagal putar lagu: ${e.message}`);
+                    if (e.message.includes('extract stream') || e.message.includes('extractor') || e.message.includes('No results')) {
+                        try {
+                            const scQuery = query.replace('scsearch:', '').trim();
+                            const scRes = await client.player.play(vc, scQuery, {
+                                searchEngine: require('discord-player').QueryType.SOUNDCLOUD_SEARCH,
+                                nodeOptions: { leaveOnEmpty: false, leaveOnEnd: false, leaveOnStop: false, metadata: message }
+                            });
+                            return message.reply(`🎶 (Jalur Alternatif) berhasil menemukan lagu: **${scRes.track.title}**`);
+                        } catch (fallbackError) {
+                            return message.reply(`❌ Lagu super langka/hak cipta. Nyerah deh cari di mana-mana ga nemu maseh.`);
+                        }
+                    } else {
+                        return message.reply(`❌ gagal putar lagu: ${e.message}`);
+                    }
                 }
             }
 
