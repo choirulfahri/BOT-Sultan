@@ -93,21 +93,23 @@ module.exports = {
 
         if (!isSavedInMemory && !isTempRoomByName) return;
 
-        // Jika channel sudah kosong (semua orang leave)
         if (channel.members.size === 0) {
-            try {
-                // Beri delay 1.5 detik untuk memastikan API Discord sinkron sebelum dihapus
-                setTimeout(async () => {
+            // Beri delay 1.5 detik untuk memastikan API Discord sinkron sebelum dihapus
+            setTimeout(async () => {
+                try {
                     const checkChannel = await oldState.guild.channels.fetch(channel.id).catch(() => null);
                     if (checkChannel && checkChannel.members.size === 0) {
                         await checkChannel.delete('Temp Voice Kosong');
                         if (isSavedInMemory) privateChannels.delete(channel.id);
                         console.log(`[TempVoice] Dihapus: ${channel.name} karena sudah kosong.`);
                     }
-                }, 1500);
-            } catch (err) {
-                console.error('[TempVoice] Gagal menghapus channel kosong:', err.message);
-            }
+                } catch (err) {
+                    // Abaikan jika channel sudah dihapus oleh sistem / user lain
+                    if (err.code !== 10003) {
+                        console.error('[TempVoice] Gagal menghapus channel kosong:', err.message);
+                    }
+                }
+            }, 1500);
         } 
         // Jika belum kosong, cek apakah yang keluar adalah Owner (Pemilik)
         else if (isSavedInMemory) {
