@@ -143,7 +143,9 @@ module.exports = {
                     .replace(/<@!?\d+>/g, '').replace(/(putar|play|musik|lagu|cari)/i, '').trim();
                 if (!query) return message.reply('mau putar lagu apa? contoh: `@bot putar Hindia`');
                 try {
+                    const { QueryType } = require('discord-player');
                     const res = await client.player.play(vc, query, {
+                        searchEngine: QueryType.SPOTIFY_SEARCH,
                         nodeOptions: { leaveOnEmpty: false, leaveOnEnd: false, leaveOnStop: false, metadata: message }
                     });
                     return message.reply(`numpang ngamen bawain lagu **${res.track.title}** 🎵`);

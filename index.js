@@ -47,9 +47,15 @@ client.player.events.on('playerError', (queue, error) => {
 // Mengekstrak metadata Youtube dsb
 (async () => {
     try {
-        const { DefaultExtractors } = require('@discord-player/extractor');
+        const { DefaultExtractors, BridgeProvider, BridgeSource } = require('@discord-player/extractor');
+        
+        // JEMBATAN ANTI HAK CIPTA: Tarik audio dari Soundcloud jika Youtube memblokir
+        const bridgeProvider = new BridgeProvider(BridgeSource.SoundCloud);
+
+        // Memuat semua penarik ekstensi standar
         await client.player.extractors.loadMulti(DefaultExtractors);
-        console.log('[Musik] Extractor berhasil dimuat.');
+        
+        console.log('[Musik] Extractor & Anti-Copyright Bridge berhasil dimuat.');
     } catch (e) {
         console.warn('[Musik] Gagal memuat extractor:', e.message);
     }

@@ -35,7 +35,9 @@ module.exports = {
             const existingQueue = useQueue(interaction.guild.id);
             const isQueuing = existingQueue && existingQueue.isPlaying();
 
+            const { QueryType } = require('discord-player');
             const res = await player.play(userChannel, query, {
+                searchEngine: QueryType.SPOTIFY_SEARCH,
                 nodeOptions: {
                     metadata: interaction,
                     leaveOnEmpty: false,
